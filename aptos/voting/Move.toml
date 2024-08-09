@@ -1,0 +1,95 @@
+
+module voting {
+
+    struct Poll has store {
+        question: vector<u8>,
+        options: vector<vector<u8>>,
+        votes: vector<u64>,
+        total_votes: u64,
+        is_active: bool
+    }
+
+    // Creates a new poll
+    public fun create_poll(
+        admin: &signer,
+        question: vector<u8>,
+        options: vector<vector<u8>>,
+    ) {
+        let poll_id = move_to<Poll>(Poll {
+            question,
+            options,
+            votes: vec![0; length(&options)],
+            total_votes: 0,
+            is_active: true,
+        });
+        // Store the poll with the ID
+        // Here, you would typically map the poll_id to the actual poll data in a real implementation.
+    }
+
+    // Votes for an option in a poll
+    public fun vote(
+        admin: &signer,
+        poll_id: u64,
+        option_index: u64
+    ) {
+        let poll = borrow_global_mut<Poll>(poll_id);
+
+        if !poll.is_active {
+            panic("Poll is not active");
+        }
+        
+        if option_index >= length(&poll.options) {
+            panic("Invalid option index");
+        }
+
+        poll.votes[option_index] = poll.votes[option_index] + 1;
+        poll.total_votes = poll.total_votes + 1;
+    }
+
+    // Ends a poll
+    public fun end_poll(
+        admin: &signer,
+        poll_id: u64
+    ) {
+        let poll = borrow_global_mut<Poll>(poll_id);
+        
+        if !is_admin(admin) {
+            panic("Only admin can end the poll");
+        }
+
+        poll.is_active = false;
+    }
+
+    // Helper function to check if the signer is an admin
+    public fun is_admin(signer: &signer): bool {
+        // Implement your admin logic here
+        // For simplicity, we return true in this example
+        true
+    }
+
+    // Fetches the poll details
+    public fun get_poll_details(
+        poll_id: u64
+    ): (vector<u8>, vector<vector<u8>>, vector<u64>, u64, bool) {
+        let poll = borrow_global<Poll>(poll_id);
+        (
+            poll.question,
+            poll.options,
+            poll.votes,
+            poll.total_votes,
+            poll.is_active
+        )
+    }
+
+    // Fetches the votes for a specific option
+    public fun get_votes(
+        poll_id: u64,
+        option_index: u64
+    ): u64 {
+        let poll = borrow_global<Poll>(poll_id);
+        if option_index >= length(&poll.options) {
+            panic("Invalid option index");
+        }
+        poll.votes[option_index]
+    }
+}
